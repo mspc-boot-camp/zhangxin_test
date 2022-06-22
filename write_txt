@@ -1,0 +1,32 @@
+# coding: utf-8
+import os
+
+def createFilelist(images_path, text_save_path):
+    # 打开图片列表清单txt文件
+    file_name = open(text_save_path, "a")
+    # 查看文件夹下的图片
+    images_name = os.listdir(images_path)
+    # 遍历所有文件
+    for eachname in images_name:
+        # 按照需要的格式写入目标txt文件
+        file_name.write(images_path + '\\' + eachname + '\n')
+        
+    print('txt_seccess！')
+
+    file_name.close()
+
+
+
+if __name__ == "__main__":
+    # txt文件存放目录
+    txt_path = r'C:\Users\15848\Desktop\classification\dog_cat_classification\input' 
+    # 图片存放目录
+    cat_images_path = r'C:\Users\15848\Desktop\AlexNet\data_name\Cat'
+    dog_images_path = r'C:\Users\15848\Desktop\AlexNet\data_name\Dog'
+
+    txt_name = 'img_paths.txt'
+
+    text_save_path = txt_path + '/' + txt_name
+    #生成txt文件
+    createFilelist(cat_images_path, text_save_path)
+    createFilelist(dog_images_path, text_save_path)

@@ -15,8 +15,8 @@ import random
 
 
 
-ROOT_TRAIN = r'C:/Users/15848/Desktop/AlexNet/data/train'
-ROOT_TEST = r'C:/Users/15848/Desktop/AlexNet/data/val'
+ROOT_TRAIN = r'C:\Users\15848\Desktop\classification\data\train'
+ROOT_TEST = r'C:\Users\15848\Desktop\classification\data\val'
 #文件划分
 def mkfile(file):
     if not os.path.exists(file):
@@ -37,7 +37,7 @@ mkfile('data/val')
 for cla in flower_class:
     mkfile('data/val/' + cla)
 
-# 划分比例，训练集 : 验证集 = 8 : 2  
+# 划分比例，训练集 : 验证集 = 8 : 2
 split_rate = 0.2
 
 # 遍历所有类别的全部图像并按比例分成训练集和验证集
@@ -68,10 +68,10 @@ print("processing done!")
 normalize = transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
 
 train_transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.RandomVerticalFlip(),
-    transforms.ToTensor(),
-    normalize])
+    transforms.Resize((224, 224)),  # 随机裁剪，再缩放成 224×224
+    transforms.RandomVerticalFlip(), # 水平方向翻转
+    transforms.ToTensor(), #数据归一化到均值为0，方差为1，归一化到[0,1]
+    normalize])            #Normalize计算过后，将数据归一化到[-1,1]
 
 val_transform = transforms.Compose([
     transforms.Resize((224, 224)),
@@ -80,9 +80,13 @@ val_transform = transforms.Compose([
 
 train_dataset = ImageFolder(ROOT_TRAIN, transform=train_transform)
 val_dataset = ImageFolder(ROOT_TEST, transform=val_transform)
-
+#ImageFolder()读取图像
+#DataLoader()加载数据集
 train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 val_dataloader = DataLoader(val_dataset, batch_size=32, shuffle=True)
+# 导入的训练集
+# 每批训练的样本数
+# 是否打乱训练集
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -92,7 +96,7 @@ model = MyAlexNet().to(device)
 # 定义一个损失函数
 loss_fn = nn.CrossEntropyLoss()
 
-# 定义一个优化器
+# 定义一个优化器(随机梯度下降法)lr学习率、momentum冲量
 optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
 # 学习率每隔10轮变为原来的0.5
@@ -101,22 +105,24 @@ lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 # 定义训练函数
 def train(dataloader, model, loss_fn, optimizer):
     loss, current, n = 0.0, 0.0, 0
-    for batch, (x, y) in enumerate(dataloader):
+    #读取data_loader中数据的循环
+    for batch, (x, y) in enumerate(dataloader):  
         image, y = x.to(device), y.to(device)
-        output = model(image)
-        cur_loss = loss_fn(output, y)
-        _, pred = torch.max(output, axis=1)
-        cur_acc = torch.sum(y==pred) / output.shape[0]
+        output = model(image)             # 正向传播
+        cur_loss = loss_fn(output, y)     # 计算损失
+        _, pred = torch.max(output, axis=1)#具体的value，预测值
+        cur_acc = torch.sum(y==pred) / output.shape[0]#计算批次精确度
 
-        # 反向传播
-        optimizer.zero_grad()
-        cur_loss.backward()
-        optimizer.step()
-        loss += cur_loss.item()
+        
+        optimizer.zero_grad()    #梯度置零
+        cur_loss.backward()      # 反向传播
+        optimizer.step()         # 优化器更新参数
+
+        loss += cur_loss.item()  #累加错误率，准确率
         current += cur_acc.item()
         n = n+1
 
-    train_loss = loss / n
+    train_loss = loss / n      #计算每一轮平均错误率，准确率
     train_acc = current / n
     print('train_loss' + str(train_loss))
     print('train_acc' + str(train_acc))
@@ -153,13 +159,15 @@ loss_val = []
 acc_val = []
 
 
-epoch = 10
+epoch = 30  #训练30轮
 min_acc = 0
 for t in range(epoch):
     lr_scheduler.step()
     
     print(f"epoch{t+1}\n-----------")
+    #训练
     train_loss, train_acc = train(train_dataloader, model, loss_fn, optimizer)
+    #验证
     val_loss, val_acc = val(val_dataloader, model, loss_fn)
     
     loss_train.append(train_loss)
@@ -174,7 +182,7 @@ for t in range(epoch):
             os.mkdir('weights')
         min_acc = val_acc
         print(f"save best model, 第{t+1}轮")
-        torch.save(model.state_dict(), 'weights/best_model.pth')
+        torch.save(model.state_dict(), r'dog_cat_classification\weights\best_model.pth')
 
 
 print('Done!')
